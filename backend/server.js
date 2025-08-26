@@ -1,8 +1,13 @@
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import express from 'express';
+
+//database here..
 import connectDB from './db/connectDB.js';
+
+//routes here..
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
@@ -16,6 +21,8 @@ app.use(cookieParser()); //for protect-route we need this middleware here.
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
     connectDB();
