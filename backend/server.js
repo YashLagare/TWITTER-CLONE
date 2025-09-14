@@ -1,3 +1,4 @@
+import { v2 } from 'cloudinary';
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import express from 'express';
@@ -10,6 +11,12 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
+
+v2.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
