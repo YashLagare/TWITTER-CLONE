@@ -8,6 +8,7 @@ import connectDB from './db/connectDB.js';
 
 //routes here..
 import authRoutes from './routes/authRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use(cookieParser()); //for protect-route we need this middleware here.
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/post", postRoutes)
 
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
