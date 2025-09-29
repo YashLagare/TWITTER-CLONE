@@ -15,22 +15,6 @@ function App() {
   //calling our /me  api to check authinticate user or not here
   const {data: authUser, isLoading} = useQuery({
     queryKey:['authUser'], //this lines help us in other pages when we want to get auth data we have to just pass this querykey that sit
-    queryFn: async() => {
-      try {
-        const res = await fetch("/api/auth/me");
-        const data = await res.json();
-
-        if (data.error) {
-          return null
-        }
-        if (!res.ok) {
-          throw new Error(data.error || "Something went wrong");
-        }
-        return data;
-      } catch (error) {
-        throw new Error(error);
-      }
-    },
   });
 
   if (isLoading) {
