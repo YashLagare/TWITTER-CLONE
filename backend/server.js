@@ -24,7 +24,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 //middleware
-app.use(express.json()); //to parse json data(req.body)
+//also expanded the img limit but remember dont make limit too large it causes DOS attacks
+app.use(express.json({limit:"5mb"})); //to parse json data(req.body)
 app.use(express.urlencoded({ extended: true })); //to parse urlencoded data
 app.use(cookieParser()); //for protect-route we need this middleware here.
 
