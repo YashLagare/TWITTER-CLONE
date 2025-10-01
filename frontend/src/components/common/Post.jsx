@@ -5,6 +5,7 @@ import { BiRepost } from "react-icons/bi";
 import { FaRegComment, FaRegHeart, FaTrash } from "react-icons/fa";
 import { FaRegBookmark } from "react-icons/fa6";
 import { Link } from "react-router-dom";
+import { formatPostDate } from "../../utils/date/dateAndTime.js";
 import LoadingSpinner from "./LoadingSpinner";
 
 const Post = ({ post }) => {
@@ -12,6 +13,14 @@ const Post = ({ post }) => {
 	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 	const queryClient = useQueryClient();
 
+	const postOwner = post.user;
+	const isLiked = post.likes.includes(authUser._id);
+
+	const isMyPost = authUser._id === post.user._id;
+
+	const formattedDate = formatPostDate(post.createdAt);
+
+	//deletePost
 	const { mutate: deletePost, isPending: isDeleting } = useMutation({
 		mutationFn: async () => {
 			try {
@@ -35,7 +44,7 @@ const Post = ({ post }) => {
 
 		},
 	});
-
+	//likePost
 	const { mutate: likePost, isPending: isLiking } = useMutation({
 		mutationFn: async () => {
 			try {
@@ -71,16 +80,43 @@ const Post = ({ post }) => {
 			toast.error(error.message);
 		},
 	});
+	//commentPost
+	const { mutate: commentPost, isPending: isCommenting } = useMutation({
+		mutationFn: async (newComment) => {
+
+			const res = await fetch(`/api/post/comment/${post._id}`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ text: newComment }),
+			})
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Something went wrong");
+			}
+			return data
+		},
+		onSuccess: (updatedComments) => {
+			toast.success("Comment posted successfully");
+			queryClient.setQueryData(['posts'], (oldPosts) =>
+				oldPosts.map((p) =>
+					p._id === post._id ? { ...p, comments: updatedComments.comments } : p
+				)
+			);
+			setComment(""); //clear textarea after success...
+			document.getElementById(`comments_modal${post._id}`).close(); //close the modal
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
 
 
-	const postOwner = post.user;
-	const isLiked = post.likes.includes(authUser._id);
 
-	const isMyPost = authUser._id === post.user._id;
 
-	const formattedDate = "1h";
-
-	const isCommenting = false;
+	// const isCommenting = false;
 
 	const handleDeletePost = () => {
 		deletePost()
@@ -88,10 +124,16 @@ const Post = ({ post }) => {
 
 	const handlePostComment = (e) => {
 		e.preventDefault();
+		if (!comment.trim()) {
+			toast.error("Comment cannot be empty");
+			return;
+		}
+		if (isCommenting) return;
+		commentPost(comment);
 	};
 
 	const handleLikePost = () => {
-		if (isLiking)	return;
+		if (isLiking) return;
 		likePost();
 	};
 
@@ -143,7 +185,7 @@ const Post = ({ post }) => {
 							>
 								<FaRegComment className='w-4 h-4  text-slate-500 group-hover:text-sky-400' />
 								<span className='text-sm text-slate-500 group-hover:text-sky-400'>
-									{post.comments.length}
+									{(post.comments || []).length}
 								</span>
 							</div>
 							{/* We're using Modal Component from DaisyUI */}
@@ -151,12 +193,12 @@ const Post = ({ post }) => {
 								<div className='modal-box rounded border border-gray-600'>
 									<h3 className='font-bold text-lg mb-4'>COMMENTS</h3>
 									<div className='flex flex-col gap-3 max-h-60 overflow-auto'>
-										{post.comments.length === 0 && (
+										{(post.comments || []).length === 0 && (
 											<p className='text-sm text-slate-500'>
 												No comments yet 🤔 Be the first one 😉
 											</p>
 										)}
-										{post.comments.map((comment) => (
+										{(post.comments || []).map((comment) => (
 											<div key={comment._id} className='flex gap-2 items-start'>
 												<div className='avatar'>
 													<div className='w-8 rounded-full'>
