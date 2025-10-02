@@ -1,36 +1,84 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
+import { FaTrash, FaUser } from "react-icons/fa";
+import { FaHeart } from "react-icons/fa6";
+import { IoSettingsOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
-import { FaUser } from "react-icons/fa";
-import { FaHeart } from "react-icons/fa6";
-import { IoSettingsOutline } from "react-icons/io5";
-
 const NotificationPage = () => {
-	const isLoading = false;
-	const notifications = [
-		{
-			_id: "1",
-			from: {
-				_id: "1",
-				username: "johndoe",
-				profileImg: "/avatars/boy2.png",
-			},
-			type: "follow",
-		},
-		{
-			_id: "2",
-			from: {
-				_id: "2",
-				username: "janedoe",
-				profileImg: "/avatars/girl1.png",
-			},
-			type: "like",
-		},
-	];
+	const queryClient = useQueryClient();
+	//load notifications
+	const {data:notifications,isLoading} = useQuery({
+		queryKey:["notifications"],
+		queryFn: async() => {
+			try {
+				const res = await fetch("/api/notifications");
+				const data = await res.json();
 
-	const deleteNotifications = () => {
-		alert("All notifications deleted");
-	};
+				if (!res.ok) {
+					throw new Error(data.message || "Failed to fetch notifications");
+				}
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},
+	});
+
+	//delete notifications
+	const { mutate: deleteNotifications} = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch("/api/notifications",{
+						method:"DELETE",
+				})
+				const data = await res.json();
+
+				if (!res.ok) {
+					throw new Error(data.message || "Failed to delete notifications");
+				}
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},
+		onSuccess: () => {
+			toast.success("Notifications deleted successfully");
+			//refetch notifications
+			queryClient.invalidateQueries({queryKey:["notifications"]});
+		},
+		onError: () => {
+			toast.error(error.message);
+		},
+	});
+
+	//delete single notification
+	const { mutate: deleteNotification } = useMutation({
+		mutationFn: async(id) => {
+			try {
+				const res = await fetch(`/api/notifications/${id}`,{
+					method:"DELETE",
+				})
+				const data = await res.json();
+
+				if (!res.ok) {
+					throw new Error(data.message || "Failed to delete notification");
+				}
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},
+		onSuccess:() => {
+			toast.success("Notification deleted successfully");
+			queryClient.invalidateQueries({queryKey:["notifications"]});
+		},
+		onError:() => {
+			toast.error(error.message);
+		},
+	});
+	
 
 	return (
 		<>
@@ -58,11 +106,11 @@ const NotificationPage = () => {
 				)}
 				{notifications?.length === 0 && <div className='text-center p-4 font-bold'>No notifications 🤔</div>}
 				{notifications?.map((notification) => (
-					<div className='border-b border-gray-700' key={notification._id}>
+					<div className='border-b border-gray-700 flex justify-between items-center' key={notification._id}>
 						<div className='flex gap-2 p-4'>
 							{notification.type === "follow" && <FaUser className='w-7 h-7 text-primary' />}
 							{notification.type === "like" && <FaHeart className='w-7 h-7 text-red-500' />}
-							<Link to={`/profile/${notification.from.username}`}>
+							<Link to={`/profile/${notification.from.username}`} className="flex gap-1 items-center">
 								<div className='avatar'>
 									<div className='w-8 rounded-full'>
 										<img src={notification.from.profileImg || "/avatar-placeholder.png"} />
@@ -74,6 +122,11 @@ const NotificationPage = () => {
 								</div>
 							</Link>
 						</div>
+
+						{/* delete button single notification  */}
+						<button onClick={() => deleteNotification(notification._id)} className="text-red-500 hover:text-red-700 px-2">
+							<FaTrash className="w-4 h-4"/>
+						</button>
 					</div>
 				))}
 			</div>
