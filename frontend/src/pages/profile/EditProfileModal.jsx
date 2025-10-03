@@ -1,9 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const EditProfileModal = ({authUser}) => {
-	const queryClient = useQueryClient();
 	const [formData, setFormData] = useState({
 		fullName: "",
 		username: "",
@@ -13,32 +11,9 @@ const EditProfileModal = ({authUser}) => {
 		newPassword: "",
 		currentPassword: "",
 	});
+	const [errors, setErrors] = useState({});
 
-	const {mutate: updateProfile, isPending: isUpdatingProfile} = useMutation({
-		mutationFn: async () => {
-			const res = await fetch(`/api/users/update`, {
-				method: "POST",
-				body: JSON.stringify(formData),
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
-			const data = await res.json();
-			if (!res.ok) {
-				throw new Error(data.error || "Something went wrong");
-			}
-			return data;
-		},
-		onSuccess: () => {
-			toast.success("Profile updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["authUser"] });
-			queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-		},
-		onError: (error) => {
-			toast.error(error.message);
-		}
-	});
-
+	const {updateProfile, isUpdatingProfile} = useUpdateUserProfile();
 
 	const handleInputChange = (e) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -57,6 +32,8 @@ const EditProfileModal = ({authUser}) => {
 			})
 		}
 	}, [authUser])
+
+	
 	return (
 		<>
 			<button
@@ -72,7 +49,22 @@ const EditProfileModal = ({authUser}) => {
 						className='flex flex-col gap-4'
 						onSubmit={(e) => {
 							e.preventDefault();
-							updateProfile();
+							let validationErrors = {};
+							if (formData.newPassword && !formData.currentPassword) {
+								validationErrors.currentPassword = "Current password is required";
+							}
+							if (formData.currentPassword && !formData.newPassword) {
+								validationErrors.newPassword = "New password is required";
+							}
+							if (formData.newPassword && formData.newPassword.length < 6) {
+								validationErrors.newPassword = "New password must be at least 6 characters";
+							}
+							if (Object.keys(validationErrors).length > 0) {
+								setErrors(validationErrors);
+								return;
+							}
+							setErrors({});
+							updateProfile(formData);
 						}}
 					>
 						<div className='flex flex-wrap gap-2'>
@@ -111,22 +103,28 @@ const EditProfileModal = ({authUser}) => {
 							/>
 						</div>
 						<div className='flex flex-wrap gap-2'>
-							<input
-								type='password'
-								placeholder='Current Password'
-								className='flex-1 input border border-gray-700 rounded p-2 input-md'
-								value={formData.currentPassword}
-								name='currentPassword'
-								onChange={handleInputChange}
-							/>
-							<input
-								type='password'
-								placeholder='New Password'
-								className='flex-1 input border border-gray-700 rounded p-2 input-md'
-								value={formData.newPassword}
-								name='newPassword'
-								onChange={handleInputChange}
-							/>
+							<div className='flex-1'>
+								<input
+									type='password'
+									placeholder='Current Password'
+									className='input border border-gray-700 rounded p-2 input-md w-full'
+									value={formData.currentPassword}
+									name='currentPassword'
+									onChange={handleInputChange}
+								/>
+								{errors.currentPassword && <p className="text-red-500 text-sm mt-1">{errors.currentPassword}</p>}
+							</div>
+							<div className='flex-1'>
+								<input
+									type='password'
+									placeholder='New Password'
+									className='input border border-gray-700 rounded p-2 input-md w-full'
+									value={formData.newPassword}
+									name='newPassword'
+									onChange={handleInputChange}
+								/>
+								{errors.newPassword && <p className="text-red-500 text-sm mt-1">{errors.newPassword}</p>}
+							</div>
 						</div>
 						<input
 							type='text'
